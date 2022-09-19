@@ -1,0 +1,12 @@
+Requirements
+
+System Level
+ffmpeg
+
+Python Libraries
+numpy
+json
+matplotlib
+scipy
+pydub
+threading
