@@ -1,6 +1,8 @@
 Requirements
 
 System Level
+Ubuntu
+Python3
 ffmpeg
 
 Python Libraries
