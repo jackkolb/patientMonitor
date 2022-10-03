@@ -4,13 +4,15 @@ from numpy import arange, zeros, where, array, NaN
 from scipy.interpolate import interp1d
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
-from pydub import AudioSegment
-from pydub.playback import play
+#from pydub import AudioSegment
+#from pydub.playback import play
+import playsound
 import threading 
 
 newBeat=False
-sound = AudioSegment.from_wav('beep.wav')
-beep_thread = threading.Thread(target=play, args=(sound,))
+#sound = AudioSegment.from_wav('beep.wav')
+#beep_thread = threading.Thread(target=play, args=(sound,))
+beep_thread = threading.Thread(target=playsound.play_sound, args=('beep.wav',))
 mpl.rcParams['toolbar'] = 'None' 
 
 
@@ -36,9 +38,6 @@ def fixdata(datain):
 def makeMonitorFigure(plot_mapping):
     text_top={'wave_ecg':'ECG bpm', 'wave_pleth':r'SpO$_2$%', 'wave_bp':'BP mmHg', 'wave_etco2':r'ETCO$_2$ kPa' }
     text_middle={'wave_ecg':'-', 'wave_pleth':'-', 'wave_bp':'---/---', 'wave_etco2':'-    RR --' }
-
-
-
     plt.close('all')
     fig, axs = plt.subplots(len(plot_mapping))
     fig.suptitle('Patient Monitor',fontsize=28)
@@ -68,9 +67,7 @@ def plotWaveForms(fig,lines,pmtext,plot_mapping,pd):
     pmtext['wave_pleth'].set_text('%d'%pd['vs_spo2'])
     pmtext['wave_bp'].set_text('%d/%d'%(pd['vs_sbp'],pd['vs_dbp']))
     pmtext['wave_etco2'].set_text('%d  RR%d'%(pd['vs_etco2'],pd['vs_rr']))
-        
-        
-
+       
 
 def updateWaveForm(tc,wave,line,fps,hide=1,isBeat=False):
     global newBeat
@@ -104,8 +101,6 @@ def updateWaveForms(tc,pd,lines,pmtext,plot_mapping,fps):
     
 
     
-
-
 def loadPatientData(fname):
     f_id=open(fname,'r')
     pd=json.load(f_id)
