@@ -4,15 +4,10 @@ from numpy import arange, zeros, where, array, NaN
 from scipy.interpolate import interp1d
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
-#from pydub import AudioSegment
-#from pydub.playback import play
 import playsound
 import threading 
 
 newBeat=False
-#sound = AudioSegment.from_wav('beep.wav')
-#beep_thread = threading.Thread(target=play, args=(sound,))
-beep_thread = threading.Thread(target=playsound.play_sound, args=('beep.wav',))
 mpl.rcParams['toolbar'] = 'None' 
 
 
@@ -25,7 +20,7 @@ def time_generator(maxTime=5,fps=1/30):
         yield cur
         cur += 1/fps
 
-
+        
 def fixdata(datain):
     ts_og=[val['x'] for val in datain]
     ts_og=[5*t/max(ts_og) for t in ts_og]
@@ -34,6 +29,7 @@ def fixdata(datain):
     ts=arange(0,5+.001,.001)
     signal = interp_func(ts)
     return {'t':ts,'signal':signal}
+
 
 def makeMonitorFigure(plot_mapping):
     text_top={'wave_ecg':'ECG bpm', 'wave_pleth':r'SpO$_2$%', 'wave_bp':'BP mmHg', 'wave_etco2':r'ETCO$_2$ kPa' }
@@ -55,6 +51,7 @@ def makeMonitorFigure(plot_mapping):
         pmtext[cKey]=ax.text(-1, 40.0, text_middle[cKey], fontsize=20,horizontalalignment='left')
         
     return fig,lines,pmtext
+
 
 def plotWaveForms(fig,lines,pmtext,plot_mapping,pd):
     for cWave in plot_mapping.keys():
@@ -83,8 +80,7 @@ def updateWaveForm(tc,wave,line,fps,hide=1,isBeat=False):
     line[1].set_data(xc[-1],yc[-1])
     
     if (isBeat) & (max(yc)>80) & (newBeat==False):
-        print(yc)
-        beep_thread = threading.Thread(target=play, args=(sound,))
+        beep_thread = threading.Thread(target=playsound.play_sound, args=('beep.wav',))
         beep_thread.start()
         newBeat=True
     elif newBeat==True & (max(yc)<25):
@@ -100,7 +96,6 @@ def updateWaveForms(tc,pd,lines,pmtext,plot_mapping,fps):
     #     updateMeasurements(pd,pmtext)
     
 
-    
 def loadPatientData(fname):
     f_id=open(fname,'r')
     pd=json.load(f_id)
@@ -108,6 +103,7 @@ def loadPatientData(fname):
     for cKey in ['wave_ecg', 'wave_pleth', 'wave_bp', 'wave_etco2']:
         pd[cKey]=fixdata(pd[cKey])
     return pd 
+    
     
 fname='pd_1.json'
 pd=loadPatientData(fname)
@@ -125,3 +121,4 @@ ani = FuncAnimation(fig, updateWaveForms,
                     blit=False, 
                     interval=1000/fps,
                     repeat=True)
+plt.show()

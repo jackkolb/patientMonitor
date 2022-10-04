@@ -22,7 +22,6 @@ def play_sound(filename="beep.wav"):
     while data != b'':
         stream.write(data)
         data = sound_file.readframes(chunk_size)
-        print("<", data)
 
     # close the stream
     stream.stop_stream()
