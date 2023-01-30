@@ -32,8 +32,8 @@ def fixdata(datain):
 
 
 def makeMonitorFigure(plot_mapping):
-    text_top={'wave_ecg':'ECG bpm', 'wave_pleth':r'SpO$_2$%', 'wave_bp':'BP mmHg', 'wave_etco2':r'ETCO$_2$ kPa' }
-    text_middle={'wave_ecg':'-', 'wave_pleth':'-', 'wave_bp':'---/---', 'wave_etco2':'-    RR --' }
+    text_top={'wave_ecg':'ECG bpm', 'wave_pleth':r'SpO$_2$%', 'wave_nibp':'BP mmHg', 'wave_etco2':r'ETCO$_2$ kPa' }
+    text_middle={'wave_ecg':'-', 'wave_pleth':'-', 'wave_nibp':'---/---', 'wave_etco2':'-    RR --' }
     plt.close('all')
     fig, axs = plt.subplots(len(plot_mapping))
     fig.suptitle('Patient Monitor',fontsize=28)
@@ -62,7 +62,7 @@ def plotWaveForms(fig,lines,pmtext,plot_mapping,pd):
         
     pmtext['wave_ecg'].set_text('%d'%pd['vs_hr'])
     pmtext['wave_pleth'].set_text('%d'%pd['vs_spo2'])
-    pmtext['wave_bp'].set_text('%d/%d'%(pd['vs_sbp'],pd['vs_dbp']))
+    pmtext['wave_nibp'].set_text('%d/%d'%(pd['vs_sbp'],pd['vs_dbp']))
     pmtext['wave_etco2'].set_text('%d  RR%d'%(pd['vs_etco2'],pd['vs_rr']))
        
 
@@ -100,7 +100,7 @@ def loadPatientData(fname):
     f_id=open(fname,'r')
     pd=json.load(f_id)
     f_id.close()
-    for cKey in ['wave_ecg', 'wave_pleth', 'wave_bp', 'wave_etco2']:
+    for cKey in ['wave_ecg', 'wave_pleth', 'wave_nibp', 'wave_etco2']:
         pd[cKey]=fixdata(pd[cKey])
     return pd 
     
@@ -111,7 +111,7 @@ pd=loadPatientData(fname)
 maxTime=5
 fps=30
 
-plot_mapping={'wave_ecg':0, 'wave_pleth':1, 'wave_bp':2, 'wave_etco2':3}
+plot_mapping={'wave_ecg':0, 'wave_pleth':1, 'wave_nibp':2, 'wave_etco2':3}
 fig,lines,pmtext=makeMonitorFigure(plot_mapping)
 plotWaveForms(fig,lines,pmtext,plot_mapping,pd)
 
