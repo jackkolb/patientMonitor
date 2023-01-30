@@ -105,7 +105,7 @@ def loadPatientData(fname):
     return pd 
     
     
-fname='pd_1.json'
+fname='pd_increasedICP.json'
 pd=loadPatientData(fname)
 
 maxTime=5
