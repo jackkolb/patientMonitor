@@ -1,6 +1,7 @@
 # trying PyAudio instead
 import pyaudio
 import wave
+import sys
 
 # plays a WAV file, defaults to beep.wav
 # based on https://coderslegacy.com/python/pyaudio-recording-and-playing-sound/
@@ -27,6 +28,7 @@ def play_sound(filename="beep.wav"):
     stream.stop_stream()
     stream.close()
     p.terminate()
+    sys.exit()
 
 if __name__ == "__main__":
     play_sound()

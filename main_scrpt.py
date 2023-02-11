@@ -34,7 +34,22 @@ def fixdata(datain):
 def makeMonitorFigure(plot_mapping):
     text_top={'wave_ecg':'ECG bpm', 'wave_pleth':r'SpO$_2$%', 'wave_nibp':'BP mmHg', 'wave_etco2':r'ETCO$_2$ kPa' }
     text_middle={'wave_ecg':'-', 'wave_pleth':'-', 'wave_nibp':'---/---', 'wave_etco2':'-    RR --' }
+    plot_mapping_colors={'wave_ecg':"#00FC00", 'wave_pleth':"#00FCFF", 'wave_nibp':"#FFFF00", 'wave_etco2':"#FF78FF"}
     plt.close('all')
+    plt.rcParams.update({
+    "lines.color": "white",
+    "patch.edgecolor": "white",
+    "text.color": "black",
+    "axes.facecolor": "white",
+    "axes.edgecolor": "lightgray",
+    "axes.labelcolor": "white",
+    "xtick.color": "white",
+    "ytick.color": "white",
+    "grid.color": "lightgray",
+    "figure.facecolor": "black",
+    "figure.edgecolor": "black",
+    "savefig.facecolor": "black",
+    "savefig.edgecolor": "black"})
     fig, axs = plt.subplots(len(plot_mapping))
     fig.suptitle('Patient Monitor',fontsize=28)
     lines={}
@@ -44,11 +59,11 @@ def makeMonitorFigure(plot_mapping):
         ax.set_xlim([-1,5])
         ax.set_ylim([-10,110])
         ax.set_facecolor('black')
-        cLine,=ax.plot([], [], linewidth=5,color='green')
-        cPoint,=ax.plot([],[],color='green', marker='o', markersize=8)
+        cLine,=ax.plot([], [], linewidth=5,color=plot_mapping_colors[cKey])
+        cPoint,=ax.plot([],[],color=plot_mapping_colors[cKey], marker='o', markersize=8)
         lines[cKey]=[cLine, cPoint]
-        ax.text(-1, 70.0, text_top[cKey], fontsize=20,horizontalalignment='left')
-        pmtext[cKey]=ax.text(-1, 40.0, text_middle[cKey], fontsize=20,horizontalalignment='left')
+        ax.text(-1, 70.0, text_top[cKey], fontsize=20,horizontalalignment='left',color=plot_mapping_colors[cKey])
+        pmtext[cKey]=ax.text(-1, 40.0, text_middle[cKey], fontsize=20,horizontalalignment='left',color=plot_mapping_colors[cKey])
         
     return fig,lines,pmtext
 
