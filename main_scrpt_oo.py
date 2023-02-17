@@ -90,7 +90,6 @@ def checkPatientStatus():
     except urllib3.exceptions.NewConnectionError:
         print('HTTP Connection failed.')
     vitals_state = int(json.loads(response.data.decode('utf-8'))['vitals-state'])
-    print(vitals_state)
     if vitals_state == 1:
         fname = 'pd_1.json'
     elif vitals_state == 0:
