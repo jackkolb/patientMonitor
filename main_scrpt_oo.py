@@ -1,12 +1,13 @@
 from matplotlib import pyplot as plt
 import json
-from numpy import arange, zeros, where, array, NaN
+from numpy import arange, where, NaN
 from scipy.interpolate import interp1d
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
-import playsound
+#from playsound_usingPyAudio import play_sound
+from  playsound_usingPlaySound import play_sound
+
 import threading 
-import pika
 
 newBeat=False
 mpl.rcParams['toolbar'] = 'None' 
@@ -70,35 +71,6 @@ def makeMonitorFigure(plot_mapping):
     return fig,lines,pmtext
 
 
-
-       
-
-def updateWaveForm(tc,wave,line,fps,hide=1,isBeat=False):
-    global newBeat
-    xdata=wave['t'].copy()
-    ydata=wave['signal'].copy()
-    idx=where((xdata>tc) & (xdata<tc+hide))[0]
-    idx_new=where((xdata<=tc) & (xdata>tc-1/fps))[0]
-    xdata[idx]=NaN
-    ydata[idx]=NaN
-    xc=xdata[idx_new]
-    yc=ydata[idx_new]
-    line[0].set_data(xdata, ydata)
-    line[1].set_data(xc[-1],yc[-1])
-    
-    if (isBeat) & (max(yc)>80) & (newBeat==False):
-        beep_thread = threading.Thread(target=playsound.play_sound, args=('beep.wav',))
-        beep_thread.start()
-        newBeat=True
-    elif newBeat==True & (max(yc)<25):
-        newBeat=False     
-
-    return line
-   
-
-
-    
-
 def loadPatientData(fname):
     f_id=open(fname,'r')
     pd=json.load(f_id)
@@ -113,7 +85,6 @@ def callback(ch, method, properties, body):
 def checkPatientStatus():
     with open('patientStatus.txt') as f:
         fname = f.readline().strip('\n')
-        # print('Using %s'%fname)
     return fname
     
 
@@ -157,14 +128,11 @@ class Monitor():
                 self.pmtext['wave_pleth'].set_text('%d'%self.pd_new['vs_spo2'])
                 self.pmtext['wave_nibp'].set_text('%d/%d'%(self.pd['vs_sbp'],self.pd['vs_dbp']))
                 self.pmtext['wave_etco2'].set_text('%d  RR%d'%(self.pd['vs_etco2'],self.pd['vs_rr']))
-                # for cKey in self.plot_mapping.keys():
-                #     pmtext[cKey]=ax.text(-1, 40.0)
         
             
         for cWave in self.plot_mapping.keys():
             self.updateWaveForm(tc,cWave,isBeat=cWave=='wave_ecg')
-        # if tc+1/fps>=5:
-        #     updateMeasurements(pd,pmtext)  
+
 
     
     def updateWaveForm(self,tc,cWave,isBeat=False, hide=1):
@@ -181,27 +149,17 @@ class Monitor():
         xdata[idx_hide]=NaN        
         ydata[idx_hide]=NaN
         
-        # ydata[idx_replace]=self.pd_new[cWave]['signal'].copy()
         xc=xdata[idx_replace]
         yc=ydata[idx_replace]
         self.lines[cWave][0].set_data(xdata, ydata)
         self.lines[cWave][1].set_data(xc[-1],yc[-1])
         
         if (isBeat) & (max(yc)>80) & (newBeat==False):
-            beep_thread = threading.Thread(target=playsound.play_sound, args=('beep.wav',))
+            beep_thread = threading.Thread(target=play_sound, args=('beep.wav',))
             beep_thread.start()
             newBeat=True
         elif newBeat==True & (max(yc)<25):
             newBeat=False     
-    
-    
-
-# connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost',port=32773))
-# channel = connection.channel()
-# channel.queue_declare(queue='hello')
-# channel.basic_consume(queue='hello', on_message_callback=callback, auto_ack=True)
-# print(' [*] Waiting for messages. To exit press CTRL+C')
-    
 
 maxTime=5
 fps=30
@@ -219,5 +177,3 @@ ani = FuncAnimation(monitor.fig, monitor.updateWaveForms,
                     repeat=True)
 plt.show()
 
-
-# channel.start_consuming()
