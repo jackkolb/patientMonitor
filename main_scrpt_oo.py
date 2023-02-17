@@ -4,10 +4,12 @@ from numpy import arange, where, NaN
 from scipy.interpolate import interp1d
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
-#from playsound_usingPyAudio import play_sound
-from  playsound_usingPlaySound import play_sound
+from playsound_usingPyAudio import play_sound
+#from  playsound_usingPlaySound import play_sound
 
-import threading 
+import threading
+import urllib3 
+http = urllib3.PoolManager()
 
 newBeat=False
 mpl.rcParams['toolbar'] = 'None' 
@@ -82,9 +84,19 @@ def loadPatientData(fname):
 def callback(ch, method, properties, body):
     print(" [x] Received %r" % body)
 
-def checkPatientStatus():
-    with open('patientStatus.txt') as f:
-        fname = f.readline().strip('\n')
+def checkPatientStatus(): 
+    try:
+        response = http.request('GET', 'http://128.61.187.166:8080/var', timeout=2.0, retries=False)
+    except urllib3.exceptions.NewConnectionError:
+        print('HTTP Connection failed.')
+    vitals_state = int(json.loads(response.data.decode('utf-8'))['vitals-state'])
+    print(vitals_state)
+    if vitals_state == 1:
+        fname = 'pd_1.json'
+    elif vitals_state == 0:
+        fname = 'pd_2.json'
+    else:
+        fname = 'pd_increasedICP.json'
     return fname
     
 
