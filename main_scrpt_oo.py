@@ -82,7 +82,7 @@ def loadPatientData(fname):
 def callback(ch, method, properties, body):
     print(" [x] Received %r" % body)
 
-<<<<<<< HEAD
+
 def checkPatientStatus(): 
     try:
         response = http.request('GET', 'http://128.61.187.166:8080/var', timeout=2.0, retries=False)
@@ -95,11 +95,10 @@ def checkPatientStatus():
         fname = 'pd_2.json'
     else:
         fname = 'pd_increasedICP.json'
-=======
+
 def checkPatientStatus():
     with open('patientStatus.txt') as f:
         fname = f.readline().strip('\n')
->>>>>>> parent of 287cecb (Update main_scrpt_oo.py)
     return fname
     
 
