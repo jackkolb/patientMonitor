@@ -4,7 +4,9 @@ from numpy import arange, where, NaN
 from scipy.interpolate import interp1d
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
+# PyAudio works best on Windows
 from playsound_usingPyAudio import play_sound
+# PlaySound works best on Linux
 #from  playsound_usingPlaySound import play_sound
 
 import threading
