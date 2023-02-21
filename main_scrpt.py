@@ -1,11 +1,15 @@
 from matplotlib import pyplot as plt
 import json
-from numpy import arange, zeros, where, array, NaN
+from numpy import arange, where, NaN
 from scipy.interpolate import interp1d
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
-import playsound
-import threading 
+from playsound_usingPyAudio import play_sound
+#from  playsound_usingPlaySound import play_sound
+
+import threading
+import urllib3
+http = urllib3.PoolManager()
 
 newBeat=False
 mpl.rcParams['toolbar'] = 'None' 
@@ -32,6 +36,7 @@ def fixdata(datain):
 
 
 def makeMonitorFigure(plot_mapping):
+    plt.close('all')
     text_top={'wave_ecg':'ECG bpm', 'wave_pleth':r'SpO$_2$%', 'wave_nibp':'BP mmHg', 'wave_etco2':r'ETCO$_2$ kPa' }
     text_middle={'wave_ecg':'-', 'wave_pleth':'-', 'wave_nibp':'---/---', 'wave_etco2':'-    RR --' }
     plot_mapping_colors={'wave_ecg':"#00FC00", 'wave_pleth':"#00FCFF", 'wave_nibp':"#FFFF00", 'wave_etco2':"#FF78FF"}
@@ -68,49 +73,6 @@ def makeMonitorFigure(plot_mapping):
     return fig,lines,pmtext
 
 
-def plotWaveForms(fig,lines,pmtext,plot_mapping,pd):
-    for cWave in plot_mapping.keys():
-        xdata=pd[cWave]['t']
-        ydata=pd[cWave]['signal']
-        lines[cWave][0].set_data(xdata, ydata)
-        lines[cWave][1].set_data(xdata[-1],ydata[-1])
-        
-    pmtext['wave_ecg'].set_text('%d'%pd['vs_hr'])
-    pmtext['wave_pleth'].set_text('%d'%pd['vs_spo2'])
-    pmtext['wave_nibp'].set_text('%d/%d'%(pd['vs_sbp'],pd['vs_dbp']))
-    pmtext['wave_etco2'].set_text('%d  RR%d'%(pd['vs_etco2'],pd['vs_rr']))
-       
-
-def updateWaveForm(tc,wave,line,fps,hide=1,isBeat=False):
-    global newBeat
-    xdata=wave['t'].copy()
-    ydata=wave['signal'].copy()
-    idx=where((xdata>tc) & (xdata<tc+hide))[0]
-    idx_new=where((xdata<=tc) & (xdata>tc-1/fps))[0]
-    xdata[idx]=NaN
-    ydata[idx]=NaN
-    xc=xdata[idx_new]
-    yc=ydata[idx_new]
-    line[0].set_data(xdata, ydata)
-    line[1].set_data(xc[-1],yc[-1])
-    
-    if (isBeat) & (max(yc)>80) & (newBeat==False):
-        beep_thread = threading.Thread(target=playsound.play_sound, args=('beep.wav',))
-        beep_thread.start()
-        newBeat=True
-    elif newBeat==True & (max(yc)<25):
-        newBeat=False     
-
-    return line
-   
-
-def updateWaveForms(tc,pd,lines,pmtext,plot_mapping,fps):
-    for cWave in plot_mapping.keys():
-        updateWaveForm(tc,pd[cWave],lines[cWave],fps,isBeat=cWave=='wave_ecg')
-    # if tc+1/fps>=5:
-    #     updateMeasurements(pd,pmtext)
-    
-
 def loadPatientData(fname):
     f_id=open(fname,'r')
     pd=json.load(f_id)
@@ -118,22 +80,113 @@ def loadPatientData(fname):
     for cKey in ['wave_ecg', 'wave_pleth', 'wave_nibp', 'wave_etco2']:
         pd[cKey]=fixdata(pd[cKey])
     return pd 
+
+def callback(ch, method, properties, body):
+    print(" [x] Received %r" % body)
+
+
+def checkPatientStatus(): 
+    vitals_state = -1
+    try:
+        response = http.request('GET', 'http://128.61.187.166:8080/var', timeout=2.0, retries=False)
+        vitals_state = int(json.loads(response.data.decode('utf-8'))['vitals-state'])
+    except (urllib3.exceptions.NewConnectionError, urllib3.exceptions.ConnectTimeoutError ):
+        print('HTTP Connection failed.')
+    if vitals_state == 1:
+        fname = 'pd_1.json'
+    elif vitals_state == 0:
+        fname = 'pd_2.json'
+    else:
+        fname = 'pd_increasedICP.json'
+    return fname
     
+
+
+class Monitor():
+    def __init__(self,fname='pd_1.json',fps=30,numFrames=None):
+        self.fps=fps
+        self.numFrames=numFrames
+        self.load_waveform(fname)
+        self.pd=self.pd_new.copy()
+        self.fname=fname
+        self.plot_mapping={'wave_ecg':0, 'wave_pleth':1, 'wave_nibp':2, 'wave_etco2':3}
+        self.fig,self.lines,self.pmtext=makeMonitorFigure(self.plot_mapping)
+        self.plotWaveForms()
     
-fname='pd_increasedICP.json'
-pd=loadPatientData(fname)
+    def load_waveform(self,fname):
+        self.pd_new=loadPatientData(fname)
+        
+
+    def plotWaveForms(self):
+        for cWave in self.plot_mapping.keys():
+            xdata=self.pd[cWave]['t']
+            ydata=self.pd[cWave]['signal']
+            self.lines[cWave][0].set_data(xdata, ydata)
+            self.lines[cWave][1].set_data(xdata[-1],ydata[-1])
+            
+        self.pmtext['wave_ecg'].set_text('%d'%self.pd['vs_hr'])
+        self.pmtext['wave_pleth'].set_text('%d'%self.pd['vs_spo2'])
+        self.pmtext['wave_nibp'].set_text('%d/%d'%(self.pd['vs_sbp'],self.pd['vs_dbp']))
+        self.pmtext['wave_etco2'].set_text('%d  RR%d'%(self.pd['vs_etco2'],self.pd['vs_rr']))
+
+    def updateWaveForms(self,tc):
+        if tc==0:
+            fname=checkPatientStatus()
+            if self.fname!=fname:
+                self.load_waveform(fname)
+                self.fname=fname
+                for cKey in ['vs_hr','vs_spo2','vs_sbp','vs_dbp','vs_etco2','vs_rr']:
+                    self.pd[cKey]=self.pd_new[cKey]
+                self.pmtext['wave_ecg'].set_text('%d'%self.pd_new['vs_hr'])
+                self.pmtext['wave_pleth'].set_text('%d'%self.pd_new['vs_spo2'])
+                self.pmtext['wave_nibp'].set_text('%d/%d'%(self.pd['vs_sbp'],self.pd['vs_dbp']))
+                self.pmtext['wave_etco2'].set_text('%d  RR%d'%(self.pd['vs_etco2'],self.pd['vs_rr']))
+        
+            
+        for cWave in self.plot_mapping.keys():
+            self.updateWaveForm(tc,cWave,isBeat=cWave=='wave_ecg')
+
+
+    
+    def updateWaveForm(self,tc,cWave,isBeat=False, hide=1):
+        global newBeat
+
+        xdata=self.pd[cWave]['t'].copy()
+        idx_replace=where((xdata<=tc) & (xdata>=tc-1/self.fps))[0]
+        idx_hide=where((xdata>tc) & (xdata<tc+hide))[0]
+
+
+        self.pd[cWave]['signal'][idx_replace]=self.pd_new[cWave]['signal'][idx_replace].copy()
+        ydata=self.pd[cWave]['signal'].copy()
+
+        xdata[idx_hide]=NaN        
+        ydata[idx_hide]=NaN
+        
+        xc=xdata[idx_replace]
+        yc=ydata[idx_replace]
+        self.lines[cWave][0].set_data(xdata, ydata)
+        self.lines[cWave][1].set_data(xc[-1],yc[-1])
+        
+        if (isBeat) & (max(yc)>80) & (newBeat==False):
+            beep_thread = threading.Thread(target=play_sound, args=('beep.wav',))
+            beep_thread.start()
+            newBeat=True
+        elif newBeat==True & (max(yc)<25):
+            newBeat=False     
 
 maxTime=5
 fps=30
+frameGenerator=time_generator(maxTime,fps)
+monitor=Monitor(fps=fps,numFrames=5001)
 
-plot_mapping={'wave_ecg':0, 'wave_pleth':1, 'wave_nibp':2, 'wave_etco2':3}
-fig,lines,pmtext=makeMonitorFigure(plot_mapping)
-plotWaveForms(fig,lines,pmtext,plot_mapping,pd)
 
-ani = FuncAnimation(fig, updateWaveForms, 
-                    fargs=(pd,lines,pmtext,plot_mapping,fps) ,
-                    frames=time_generator(maxTime,fps), 
+
+
+
+ani = FuncAnimation(monitor.fig, monitor.updateWaveForms, 
+                    frames=frameGenerator, 
                     blit=False, 
                     interval=1000/fps,
                     repeat=True)
 plt.show()
+
