@@ -4,7 +4,7 @@ from numpy import arange, where, NaN
 from scipy.interpolate import interp1d
 import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
-# PyAudio works best on Windows
+# PyAudio works best on Windows AND Linux
 from playsound_usingPyAudio import play_sound
 # PlaySound works best on Linux
 #from  playsound_usingPlaySound import play_sound
@@ -88,9 +88,9 @@ def callback(ch, method, properties, body):
 
 
 def checkPatientStatus(): 
-    vitals_state = -1
+    vitals_state = 0
     try:
-        response = http.request('GET', 'http://128.61.187.166:8080/var', timeout=2.0, retries=False)
+        response = http.request('GET', 'http://128.61.187.166:8080/var', timeout=0.25, retries=False)
         vitals_state = int(json.loads(response.data.decode('utf-8'))['vitals-state'])
     except (urllib3.exceptions.NewConnectionError, urllib3.exceptions.ConnectTimeoutError ):
         print('HTTP Connection failed.')
@@ -131,6 +131,7 @@ class Monitor():
         self.pmtext['wave_nibp'].set_text('%d/%d'%(self.pd['vs_sbp'],self.pd['vs_dbp']))
         self.pmtext['wave_etco2'].set_text('%d  RR%d'%(self.pd['vs_etco2'],self.pd['vs_rr']))
 
+
     def updateWaveForms(self,tc):
         if tc==0:
             fname=checkPatientStatus()
@@ -149,14 +150,11 @@ class Monitor():
             self.updateWaveForm(tc,cWave,isBeat=cWave=='wave_ecg')
 
 
-    
     def updateWaveForm(self,tc,cWave,isBeat=False, hide=1):
         global newBeat
-
         xdata=self.pd[cWave]['t'].copy()
         idx_replace=where((xdata<=tc) & (xdata>=tc-1/self.fps))[0]
         idx_hide=where((xdata>tc) & (xdata<tc+hide))[0]
-
 
         self.pd[cWave]['signal'][idx_replace]=self.pd_new[cWave]['signal'][idx_replace].copy()
         ydata=self.pd[cWave]['signal'].copy()
@@ -174,16 +172,12 @@ class Monitor():
             beep_thread.start()
             newBeat=True
         elif newBeat==True & (max(yc)<25):
-            newBeat=False     
+            newBeat=False
 
 maxTime=5
 fps=30
 frameGenerator=time_generator(maxTime,fps)
 monitor=Monitor(fps=fps,numFrames=5001)
-
-
-
-
 
 ani = FuncAnimation(monitor.fig, monitor.updateWaveForms, 
                     frames=frameGenerator, 
